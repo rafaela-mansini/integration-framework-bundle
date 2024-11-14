@@ -99,11 +99,11 @@ class Mapper implements MapperInterface
      */
     public function mergeMapping($mappingName, $mappers)
     {
-        $response = [];
-
         if (empty($mappers)) {
             throw new \InvalidArgumentException('No mapper provided.');
         }
+
+        $response = [];
 
         foreach ($mappers as $mapper){
             $mapFunction = $mapper[0] ?? null;
@@ -114,19 +114,15 @@ class Mapper implements MapperInterface
                 continue;
             }
 
-            if(empty($mapFunction) || empty($context)){
+            if(empty($mapFunction) || empty($context) || !in_array($mapFunction, ['map', 'mapAll'])){
                 throw new \InvalidArgumentException('No mapper function or context informed');
             }
 
-            switch ($mapFunction){
-                case 'map':
-                    $response[] = $this->map($object, $mappingName, $context);
-                    break;
-                case 'mapAll':
-                    $response = array_merge($response, $this->mapAll($object, $mappingName, $context));
-                    break;
-                default:
-                    throw new \InvalidArgumentException(sprintf('Invalid mapping name "%s"', $mappingName));
+            $mappedObject = $this->$mapFunction($object, $mappingName, $context);
+            if (!empty($mappedObject)) {
+                $response = ($mapFunction === 'map')
+                    ? array_merge($response, [$mappedObject])
+                    : array_merge($response, $mappedObject);
             }
         }
 

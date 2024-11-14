@@ -269,19 +269,17 @@ class MapperTest extends \PHPUnit\Framework\TestCase
         yield 'Wrong type' => [null, null, $ctx];
     }
 
-    public function testShouldMergeMappings()
+    /**
+     * @dataProvider provideMergeMappings
+     */
+    public function testShouldMergeMappings($expectedResult, $mockedMapFunction, $mockedMapAllFunction)
     {
-        $expectedResult = [
-            ['name' => 'packshot', 'location' => 'https://media.com/1'],
-            ['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/2'],
-            ['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/3']
-        ];
         $mapperMock = $this->getMockBuilder(Mapper::class)
             ->setMethods(['mapAll', 'map'])
             ->getMock();
 
-        $mapperMock->method('map')->willReturn(['name' => 'packshot', 'location' => 'https://media.com/1']);
-        $mapperMock->method('mapAll')->willReturn([['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/2'],['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/3']]);
+        $mapperMock->method('map')->willReturn($mockedMapFunction);
+        $mapperMock->method('mapAll')->willReturn($mockedMapAllFunction);
 
         $result = $mapperMock->mergeMapping('mappingName', [
             ['map', ['https://media.com/1'], 'packshot'],
@@ -289,6 +287,34 @@ class MapperTest extends \PHPUnit\Framework\TestCase
         ]);
 
         $this->assertSame($expectedResult, $result);
+    }
+
+    public function provideMergeMappings()
+    {
+        yield 'Merge mappings' => [
+            [
+                ['name' => 'packshot', 'location' => 'https://media.com/1'],
+                ['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/2'],
+                ['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/3']
+            ],
+            ['name' => 'packshot', 'location' => 'https://media.com/1'],
+            [['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/2'],['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/3']]
+        ];
+        yield 'Merge mappings with null map' => [
+            [
+                ['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/2'],
+                ['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/3']
+            ],
+            null,
+            [['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/2'],['name' => 'eRetailerNonBrand', 'location' => 'https://media.com/3']]
+        ];
+        yield 'Merge mappings with null mapAll' => [
+            [
+                ['name' => 'packshot', 'location' => 'https://media.com/1']
+            ],
+            ['name' => 'packshot', 'location' => 'https://media.com/1'],
+            null
+        ];
     }
 
     /**
