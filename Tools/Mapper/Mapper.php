@@ -92,13 +92,18 @@ class Mapper implements MapperInterface
     /**
      * Merge multiples arrays values in a single mappingName
      *
+     * @param array $elements
      * @param string $mappingName
      * @param array<array{mapFunction: string, object: array|null, context: string}> $mappers
      *
      * @return null|string
      */
-    public function mergeMapping($mappingName, $mappers)
+    public function mergeMapping($elements, $mappingName, $mappers)
     {
+        if(empty($elements)) {
+            return null;
+        }
+
         if (empty($mappers)) {
             throw new \InvalidArgumentException('No mapper provided.');
         }
@@ -106,13 +111,13 @@ class Mapper implements MapperInterface
         $response = [];
 
         foreach ($mappers as $mapper){
-            $mapFunction = $mapper[0] ?? null;
-            $object = $mapper[1] ?? null;
-            $context = $mapper[2] ?? null;
-
+            $object = $this->getObject($elements, $mapper[1]);
             if(empty($object)){
                 continue;
             }
+
+            $mapFunction = $mapper[0] ?? null;
+            $context = $mapper[2] ?? $mapper[1] ?? null;
 
             if(empty($mapFunction) || empty($context) || !in_array($mapFunction, ['map', 'mapAll'])){
                 throw new \InvalidArgumentException('No mapper function or context informed');
@@ -127,6 +132,21 @@ class Mapper implements MapperInterface
         }
 
         return $response;
+    }
+
+
+    private function getObject(array $elements, string $path) {
+        $keys = explode('.', $path);
+        $current = $elements;
+
+        foreach ($keys as $key) {
+            if (!isset($current[$key])) {
+                return null;
+            }
+            $current = $current[$key];
+        }
+
+        return $current;
     }
 
     /**
